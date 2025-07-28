@@ -17,7 +17,7 @@ const Navbar = () => {
           <div className="text-white text-xl font-bold flex items-center gap-2">
             <QrCode className="w-8 h-8 animate-pulse" />
             <span className="bg-gradient-to-r from-yellow-200 via-pink-200 to-purple-200 text-transparent bg-clip-text font-extrabold tracking-wider">
-              QR Studio
+              SnapURL
             </span>
           </div>
 
