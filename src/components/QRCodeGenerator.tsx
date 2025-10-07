@@ -1,100 +1,100 @@
-import React, { useState } from 'react';
-import QRCode from 'qrcode';
-import { Download, Link2, Loader2, Share2, CheckCircle2, Copy, Settings2, Palette } from 'lucide-react';
+import React, { useState, useRef, useEffect } from "react";
+import {
+  Download,
+  Link2,
+  Loader2,
+  Share2,
+  CheckCircle2,
+  Copy,
+  Settings2,
+  Palette,
+} from "lucide-react";
+import QRCodeStyling from "qr-code-styling";
 
-interface QROptions {
-  width: number;
-  margin: number;
-  color: {
-    dark: string;
-    light: string;
-  };
-}
-
-interface QRCodeData {
-  url: string;
-  dataUrl: string;
-}
-
-type QRStyle = 'dots' | 'squares' | 'rounded';
+type QRStyle = "dots" | "square" | "rounded";
 
 const QRCodeGenerator: React.FC = () => {
-  const [text, setText] = useState<string>('');
-  const [qrCode, setQrCode] = useState<QRCodeData | null>(null);
+  const [text, setText] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  
-  // QR Code customization options
-  const [foregroundColor, setForegroundColor] = useState('#4C1D95');
-  const [backgroundColor, setBackgroundColor] = useState('#FFFFFF');
-  const [qrStyle, setQrStyle] = useState<QRStyle>('squares');
+
+  // QR customization options
+  const [foregroundColor, setForegroundColor] = useState("#4C1D95");
+  const [backgroundColor, setBackgroundColor] = useState("#FFFFFF");
+  const [qrStyle, setQrStyle] = useState<QRStyle>("square");
   const [margin, setMargin] = useState(2);
   const [size, setSize] = useState(300);
 
-  const generateQRCode = async () => {
-    if (!text) return;
-    
-    setIsLoading(true);
-    try {
-      // Basic QR code options
-      const options: QROptions = {
-        width: size,
-        margin: margin,
-        color: {
-          dark: foregroundColor,
-          light: backgroundColor,
-        },
-      };
+  const qrRef = useRef<HTMLDivElement | null>(null);
+  const qrCode = useRef<QRCodeStyling | null>(null);
 
-      // Generate QR code
-      const dataUrl = await QRCode.toDataURL(text, options);
-      setQrCode({ url: text, dataUrl });
-    } catch (err) {
-      console.error('Error generating QR code:', err);
-    } finally {
-      setIsLoading(false);
+  useEffect(() => {
+    qrCode.current = new QRCodeStyling({
+      width: size,
+      height: size,
+      data: " ",
+      margin,
+      dotsOptions: {
+        type: qrStyle,
+        color: foregroundColor,
+      },
+      backgroundOptions: {
+        color: backgroundColor,
+      },
+    });
+
+    if (qrRef.current) {
+      qrCode.current.append(qrRef.current);
     }
+  }, []);
+
+  useEffect(() => {
+    if (!qrCode.current) return;
+    qrCode.current.update({
+      data: text || " ",
+      width: size,
+      height: size,
+      margin,
+      dotsOptions: {
+        type: qrStyle,
+        color: foregroundColor,
+      },
+      backgroundOptions: {
+        color: backgroundColor,
+      },
+    });
+  }, [text, size, margin, foregroundColor, backgroundColor, qrStyle]);
+
+  const generateQRCode = () => {
+    if (!text) return;
+    setIsLoading(true);
+    setTimeout(() => setIsLoading(false), 600);
   };
 
   const handleDownload = () => {
-    if (qrCode) {
-      const link = document.createElement('a');
-      link.href = qrCode.dataUrl;
-      link.download = 'qrcode.png';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    }
+    qrCode.current?.download({ name: "qrcode", extension: "png" });
   };
 
   const handleShare = async () => {
-    if (qrCode && navigator.share) {
+    if (text && navigator.share) {
       try {
         await navigator.share({
-          title: 'QR Code',
-          text: 'Check out this QR Code!',
-          url: qrCode.url
+          title: "QR Code",
+          text: "Check out this QR Code!",
+          url: text,
         });
       } catch (error) {
-        console.error('Error sharing:', error);
+        console.error("Error sharing:", error);
       }
     }
   };
 
   const handleCopy = () => {
-    if (qrCode) {
-      navigator.clipboard.writeText(qrCode.url);
+    if (text) {
+      navigator.clipboard.writeText(text);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    }
-  };
-
-  const handleColorChange = (type: 'dark' | 'light', color: string): void => {
-    if (type === 'dark') {
-      setForegroundColor(color);
-    } else {
-      setBackgroundColor(color);
     }
   };
 
@@ -105,13 +105,18 @@ const QRCodeGenerator: React.FC = () => {
           <h1 className="text-4xl font-bold bg-gradient-to-r from-violet-600 to-fuchsia-600 text-transparent bg-clip-text">
             QR Code Studio
           </h1>
-          <p className="text-gray-600">Create beautiful and customized QR codes instantly</p>
+          <p className="text-gray-600">
+            Create beautiful and customized QR codes instantly
+          </p>
         </div>
-        
+
         <div className="grid md:grid-cols-2 gap-8">
           <div className="space-y-4">
             <div className="flex flex-col space-y-2">
-              <label htmlFor="text" className="text-sm font-medium text-gray-700">
+              <label
+                htmlFor="text"
+                className="text-sm font-medium text-gray-700"
+              >
                 Enter text or URL
               </label>
               <div className="relative">
@@ -140,42 +145,52 @@ const QRCodeGenerator: React.FC = () => {
             {showSettings && (
               <div className="space-y-4 p-4 bg-gray-50 rounded-lg">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700">Style</label>
+                  <label className="text-sm font-medium text-gray-700">
+                    Style
+                  </label>
                   <div className="grid grid-cols-3 gap-2">
-                    {(['dots', 'squares', 'rounded'] as QRStyle[]).map((style) => (
-                      <button
-                        key={style}
-                        onClick={() => setQrStyle(style)}
-                        className={`px-3 py-2 rounded-md capitalize ${
-                          qrStyle === style
-                            ? 'bg-violet-600 text-white'
-                            : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
-                        }`}
-                      >
-                        {style}
-                      </button>
-                    ))}
+                    {(["dots", "square", "rounded"] as QRStyle[]).map(
+                      (style) => (
+                        <button
+                          key={style}
+                          onClick={() => setQrStyle(style)}
+                          className={`px-3 py-2 rounded-md capitalize ${
+                            qrStyle === style
+                              ? "bg-violet-600 text-white"
+                              : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
+                          }`}
+                        >
+                          {style}
+                        </button>
+                      )
+                    )}
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700">Colors</label>
+                  <label className="text-sm font-medium text-gray-700">
+                    Colors
+                  </label>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="text-xs text-gray-500">Foreground</label>
+                      <label className="text-xs text-gray-500">
+                        Foreground
+                      </label>
                       <input
                         type="color"
                         value={foregroundColor}
-                        onChange={(e) => handleColorChange('dark', e.target.value)}
+                        onChange={(e) => setForegroundColor(e.target.value)}
                         className="w-full h-10 rounded-md cursor-pointer"
                       />
                     </div>
                     <div>
-                      <label className="text-xs text-gray-500">Background</label>
+                      <label className="text-xs text-gray-500">
+                        Background
+                      </label>
                       <input
                         type="color"
                         value={backgroundColor}
-                        onChange={(e) => handleColorChange('light', e.target.value)}
+                        onChange={(e) => setBackgroundColor(e.target.value)}
                         className="w-full h-10 rounded-md cursor-pointer"
                       />
                     </div>
@@ -183,7 +198,9 @@ const QRCodeGenerator: React.FC = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700">Size & Margin</label>
+                  <label className="text-sm font-medium text-gray-700">
+                    Size & Margin
+                  </label>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="text-xs text-gray-500">Size (px)</label>
@@ -202,7 +219,7 @@ const QRCodeGenerator: React.FC = () => {
                       <input
                         type="range"
                         min="0"
-                        max="5"
+                        max="10"
                         value={margin}
                         onChange={(e) => setMargin(Number(e.target.value))}
                         className="w-full"
@@ -219,8 +236,8 @@ const QRCodeGenerator: React.FC = () => {
               disabled={isLoading || !text}
               className={`w-full flex items-center justify-center space-x-2 py-3 px-4 rounded-md transition-all duration-300 ${
                 isLoading || !text
-                  ? 'bg-gray-300 cursor-not-allowed'
-                  : 'bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:opacity-90 text-white'
+                  ? "bg-gray-300 cursor-not-allowed"
+                  : "bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:opacity-90 text-white"
               }`}
             >
               {isLoading ? (
@@ -235,55 +252,39 @@ const QRCodeGenerator: React.FC = () => {
           </div>
 
           <div className="space-y-4">
-            {qrCode ? (
-              <>
-                <div className="flex justify-center p-6 bg-gray-50 rounded-lg">
-                  <img 
-                    src={qrCode.dataUrl} 
-                    alt="QR Code" 
-                    className="max-w-full transition-all duration-300 hover:scale-105"
-                    style={{ width: `${size}px`, height: `${size}px` }}
-                  />
-                </div>
-                
-                <div className="grid grid-cols-3 gap-2">
-                  <button
-                    onClick={handleDownload}
-                    className="flex items-center justify-center space-x-2 bg-violet-600 text-white py-2 px-4 rounded-md hover:bg-violet-700 transition-colors"
-                  >
-                    <Download className="w-4 h-4" />
-                    <span>Download</span>
-                  </button>
-                  
-                  <button
-                    onClick={handleShare}
-                    className="flex items-center justify-center space-x-2 bg-fuchsia-600 text-white py-2 px-4 rounded-md hover:bg-fuchsia-700 transition-colors"
-                  >
-                    <Share2 className="w-4 h-4" />
-                    <span>Share</span>
-                  </button>
+            <div className="flex justify-center p-6 bg-gray-50 rounded-lg">
+              <div ref={qrRef} />
+            </div>
 
-                  <button
-                    onClick={handleCopy}
-                    className="flex items-center justify-center space-x-2 bg-purple-600 text-white py-2 px-4 rounded-md hover:bg-purple-700 transition-colors"
-                  >
-                    {copied ? (
-                      <CheckCircle2 className="w-4 h-4" />
-                    ) : (
-                      <Copy className="w-4 h-4" />
-                    )}
-                    <span>{copied ? 'Copied!' : 'Copy'}</span>
-                  </button>
-                </div>
-              </>
-            ) : (
-              <div className="flex items-center justify-center h-full">
-                <div className="text-center text-gray-500">
-                  <Palette className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                  <p>Your QR code will appear here</p>
-                </div>
-              </div>
-            )}
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                onClick={handleDownload}
+                className="flex items-center justify-center space-x-2 bg-violet-600 text-white py-2 px-4 rounded-md hover:bg-violet-700 transition-colors"
+              >
+                <Download className="w-4 h-4" />
+                <span>Download</span>
+              </button>
+
+              <button
+                onClick={handleShare}
+                className="flex items-center justify-center space-x-2 bg-fuchsia-600 text-white py-2 px-4 rounded-md hover:bg-fuchsia-700 transition-colors"
+              >
+                <Share2 className="w-4 h-4" />
+                <span>Share</span>
+              </button>
+
+              <button
+                onClick={handleCopy}
+                className="flex items-center justify-center space-x-2 bg-purple-600 text-white py-2 px-4 rounded-md hover:bg-purple-700 transition-colors"
+              >
+                {copied ? (
+                  <CheckCircle2 className="w-4 h-4" />
+                ) : (
+                  <Copy className="w-4 h-4" />
+                )}
+                <span>{copied ? "Copied!" : "Copy"}</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
